@@ -17,25 +17,27 @@ jobs:
         run: |
           mkdir -p AD-domain/Clash AD-domain/Surge
 
-          # 下载源文件
-          curl -sSL https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt -o list1.txt
-          curl -sSL https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/ultimate-onlydomains.txt -o list2.txt
+          # 下载新源文件（Surge 格式），去掉注释和前缀
+          curl -sSL https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-surge.txt -o anti-ad.txt
+          grep -vE '^\s*#' anti-ad.txt | sed '/^\s*$/d' | sed 's/^DOMAIN-SUFFIX,//' > clean1.txt
 
-          # 处理域名：去除注释、空行、格式化为 DOMAIN-SUFFIX
-          cat list1.txt list2.txt \
-            | grep -vE '^\s*#' \
-            | sed '/^\s*$/d' \
+          # 下载第二个源文件（纯域名格式）
+          curl -sSL https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/ultimate-onlydomains.txt -o list2.txt
+          grep -vE '^\s*#' list2.txt | sed '/^\s*$/d' > clean2.txt
+
+          # 合并、去重、重新添加统一前缀
+          cat clean1.txt clean2.txt \
             | sed 's/^\.//' \
             | sed 's/^/DOMAIN-SUFFIX,/' \
             | sort -u > tmp_domains.txt
 
-          # 生成 Clash 格式的 YAML 文件
+          # 生成 Clash 格式 YAML 文件
           {
             echo "payload:"
             sed 's/^/  - /' tmp_domains.txt
           } > AD-domain/Clash/AD-domain.yaml
 
-          # 生成 Surge 格式的 list 文件
+          # 生成 Surge 格式文件
           cp tmp_domains.txt AD-domain/Surge/AD-domain.list
 
       - name: Commit and push changes
