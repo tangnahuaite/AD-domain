@@ -1,0 +1,53 @@
+name: Update Clash and Surge AD Domain List
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # 每天 UTC 时间 2 点执行（北京时间 10 点）
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch and generate Clash and Surge-compatible formats
+        run: |
+          mkdir -p AD-domain/Clash AD-domain/Surge
+
+          # 下载源文件
+          curl -sSL https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-domains.txt -o list1.txt
+          curl -sSL https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/ultimate-onlydomains.txt -o list2.txt
+
+          # 处理域名：去除注释、空行、格式化为 DOMAIN-SUFFIX
+          cat list1.txt list2.txt \
+            | grep -vE '^\s*#' \
+            | sed '/^\s*$/d' \
+            | sed 's/^\.//' \
+            | sed 's/^/DOMAIN-SUFFIX,/' \
+            | sort -u > tmp_domains.txt
+
+          # 生成 Clash 格式的 YAML 文件
+          {
+            echo "payload:"
+            sed 's/^/  - /' tmp_domains.txt
+          } > AD-domain/Clash/AD-domain.yaml
+
+          # 生成 Surge 格式的 list 文件
+          cp tmp_domains.txt AD-domain/Surge/AD-domain.list
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [[ `git status --porcelain` ]]; then
+            git add AD-domain/Clash/AD-domain.yaml
+            git add AD-domain/Surge/AD-domain.list
+            git commit -m "Update AD domain list for Clash and Surge on $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git push
+          else
+            echo "No changes to commit."
+          fi
