@@ -17,16 +17,31 @@ jobs:
         run: |
           mkdir -p AD-domain/Clash AD-domain/Surge
 
-          # 下载新源文件（Surge 格式），去掉注释和前缀
+          # 下载 anti-AD 的 Surge 格式源，去除注释和前缀
           curl -sSL https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-surge.txt -o anti-ad.txt
           grep -vE '^\s*#' anti-ad.txt | sed '/^\s*$/d' | sed 's/^DOMAIN-SUFFIX,//' > clean1.txt
 
-          # 下载第二个源文件（纯域名格式）
-          curl -sSL https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/ultimate-onlydomains.txt -o list2.txt
-          grep -vE '^\s*#' list2.txt | sed '/^\s*$/d' > clean2.txt
+          # 定义多个 Hagezi 源列表
+          urls=(
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/popupads-onlydomains.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/tif.mini-onlydomains.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.huawei-onlydomains.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.winoffice-onlydomains.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.samsung-onlydomains.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.tiktok.extended-onlydomains.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.vivo-onlydomains.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.oppo-realme-onlydomains.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.xiaomi-onlydomains.txt"
+          )
 
-          # 合并、去重、重新添加统一前缀
-          cat clean1.txt clean2.txt \
+          # 下载并清洗所有 Hagezi 域名列表
+          > clean_hagezi.txt
+          for url in "${urls[@]}"; do
+            curl -sSL "$url" | grep -vE '^\s*#' | sed '/^\s*$/d' >> clean_hagezi.txt
+          done
+
+          # 合并、统一格式、去重
+          cat clean1.txt clean_hagezi.txt \
             | sed 's/^\.//' \
             | sed 's/^/DOMAIN-SUFFIX,/' \
             | sort -u > tmp_domains.txt
