@@ -13,7 +13,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fetch and generate Clash and Surge-compatible formats
+      - name: Fetch and generate Clash, Surge and raw domain list
         run: |
           mkdir -p AD-domain/Clash AD-domain/Surge
 
@@ -43,28 +43,34 @@ jobs:
           # 合并、统一格式、去重
           cat clean1.txt clean_hagezi.txt \
             | sed 's/^\.//' \
-            | sed 's/^/DOMAIN-SUFFIX,/' \
-            | sort -u > tmp_domains.txt
+            | sort -u > raw_domains.txt
 
-          # 生成 Clash 格式 YAML 文件
+          # 生成 Surge 格式（加上前缀）
+          sed 's/^/DOMAIN-SUFFIX,/' raw_domains.txt > tmp_domains.txt
+
+          # 生成 Clash YAML 文件
           {
             echo "payload:"
             sed 's/^/  - /' tmp_domains.txt
           } > AD-domain/Clash/AD-domain.yaml
 
-          # 生成 Surge 格式文件
+          # 生成 Surge 文件
           cp tmp_domains.txt AD-domain/Surge/AD-domain.list
+
+          # 保存一份纯域名列表到仓库根目录
+          cp raw_domains.txt AD-domains.txt
 
       - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # 只关注目标目录是否有改动
-          if [[ $(git status --porcelain AD-domain/) ]]; then
+          # 只关注目标目录和根域名文件是否有改动
+          if [[ $(git status --porcelain AD-domain/ AD-domains.txt) ]]; then
             git add AD-domain/Clash/AD-domain.yaml
             git add AD-domain/Surge/AD-domain.list
-            git commit -m "Update AD domain list for Clash and Surge on $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            git add AD-domains.txt
+            git commit -m "Update AD domain lists on $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             git push
           else
             echo "No changes to commit."
