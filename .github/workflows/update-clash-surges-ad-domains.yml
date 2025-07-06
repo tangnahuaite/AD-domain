@@ -57,9 +57,9 @@ jobs:
             sed 's/^/  - DOMAIN-SUFFIX,/' raw_domains.txt
           } > AD-domain/Clash/AD-domain.yaml
 
-          # 生成 Stash 格式（加上+前缀和.域名）
+          # 生成 Stash 格式（去除中间空格，正确的 +. 域名格式）
           {
-            sed 's/^/+/; s/^/./' raw_domains.txt
+            sed 's/^/+. /' raw_domains.txt
           } > AD-domain/Stash/AD-domain.txt
 
       - name: Commit and push changes
