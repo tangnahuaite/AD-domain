@@ -1,4 +1,4 @@
-name: Update Clash and Surge AD Domain List
+name: Update Clash, Surge and Stash AD Domain Lists
 
 on:
   schedule:
@@ -13,9 +13,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Fetch and generate Clash, Surge and raw domain list
+      - name: Fetch and generate domain lists
         run: |
-          mkdir -p AD-domain/Clash AD-domain/Surge
+          mkdir -p AD-domain/Clash AD-domain/Surge AD-domain/Stash
 
           # 下载 anti-AD 的 Surge 格式源，去除注释和前缀
           curl -sSL https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-surge.txt -o anti-ad.txt
@@ -40,36 +40,39 @@ jobs:
             curl -sSL "$url" | grep -vE '^\s*#' | sed '/^\s*$/d' >> clean_hagezi.txt
           done
 
-          # 合并、统一格式、去重
+          # 合并、统一格式、去重，得到纯域名
           cat clean1.txt clean_hagezi.txt \
             | sed 's/^\.//' \
             | sort -u > raw_domains.txt
 
-          # 生成 Surge 格式（加上前缀）
-          sed 's/^/DOMAIN-SUFFIX,/' raw_domains.txt > tmp_domains.txt
-
-          # 生成 Clash YAML 文件
-          {
-            echo "payload:"
-            sed 's/^/  - /' tmp_domains.txt
-          } > AD-domain/Clash/AD-domain.yaml
-
-          # 生成 Surge 文件
-          cp tmp_domains.txt AD-domain/Surge/AD-domain.list
-
           # 保存一份纯域名列表到仓库根目录
           cp raw_domains.txt AD-domains.txt
+
+          # 生成 Surge 格式（加上前缀）
+          sed 's/^/DOMAIN-SUFFIX,/' raw_domains.txt > AD-domain/Surge/AD-domain.list
+
+          # 生成 Clash 格式 YAML
+          {
+            echo "payload:"
+            sed 's/^/  - DOMAIN-SUFFIX,/' raw_domains.txt
+          } > AD-domain/Clash/AD-domain.yaml
+
+          # 生成 Stash 格式 YAML
+          {
+            echo "payload:"
+            sed 's/^/  - '\''+./' raw_domains.txt | sed "s/$/'/"
+          } > AD-domain/Stash/AD-domain.txt
 
       - name: Commit and push changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # 只关注目标目录和根域名文件是否有改动
           if [[ $(git status --porcelain AD-domain/ AD-domains.txt) ]]; then
+            git add AD-domains.txt
             git add AD-domain/Clash/AD-domain.yaml
             git add AD-domain/Surge/AD-domain.list
-            git add AD-domains.txt
+            git add AD-domain/Stash/AD-domain.txt
             git commit -m "Update AD domain lists on $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             git push
           else
