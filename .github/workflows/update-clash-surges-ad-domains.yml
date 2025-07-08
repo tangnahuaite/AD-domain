@@ -50,8 +50,10 @@ jobs:
           sed 's/^/DOMAIN-SUFFIX,/' raw_domains.txt > AD-domain/Surge/AD-domain.list
 
           # 生成 Clash 格式 YAML（使用 '+.' 通配符格式）
+          (
             echo "payload:" > AD-domain/Clash/AD-domain.yaml
             sed 's/^/  - \'+./; s/$/'\''/' raw_domains.txt >> AD-domain/Clash/AD-domain.yaml
+            )
 
       - name: Commit and push changes
         run: |
