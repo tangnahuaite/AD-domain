@@ -65,7 +65,7 @@ jobs:
           if [[ $(git status --porcelain AD-domain/ AD-domains.txt) ]]; then
             git add AD-domains.txt
             git add AD-domain/Clash/AD-domain.yaml
-            git add AD-domain/Surge/AD-domain.list
+            git add AD-domain/Surge/AD-domain.txt
             git commit -m "Update AD domain lists on $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
             git push
           else
