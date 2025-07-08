@@ -52,7 +52,7 @@ jobs:
           # 生成 Clash 格式 YAML
           {
             echo "payload:"
-            sed 's/^/  - DOMAIN-SUFFIX,/' raw_domains.txt
+            sed 's/^/  - \'+./' raw_domains.txt | sed 's/$/\'/'
           } > AD-domain/Clash/AD-domain.yaml
 
           # 生成 Stash 格式（去除多余空格，正确的 +. 格式）
