@@ -48,7 +48,6 @@ jobs:
           # 保存一份纯域名列表到仓库根目录
           cp raw_domains.txt AD-domains.txt
 
-          # 生成 Surge 格式（加上前缀）
           # 生成 Surge domain-set 格式（添加前缀点 .）
           sed 's/^/./' raw_domains.txt > AD-domain/Surge/AD-domain.txt
 
