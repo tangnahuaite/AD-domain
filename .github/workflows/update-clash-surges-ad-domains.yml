@@ -18,11 +18,13 @@ jobs:
           mkdir -p AD-domain/Clash AD-domain/Surge AD-domain/Stash
 
           # 下载 anti-AD 的 Surge 格式源，去除注释和前缀
-          curl -sSL https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-surge.txt -o anti-ad.txt
-          grep -vE '^\s*#' anti-ad.txt | sed '/^\s*$/d' | sed 's/^DOMAIN-SUFFIX,//' > clean1.txt
+          curl -sSL https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-surge2.txt -o anti-ad.txt
+          grep -vE '^\s*#' anti-ad.txt | sed '/^\s*$/d' | sed 's/^\.//' > clean1.txt
 
           # 定义多个 Hagezi 源列表
           urls=(
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/popupads-onlydomains.txt"
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/tif.mini-onlydomains.txt"
             "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.huawei-onlydomains.txt"
             "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.winoffice-onlydomains.txt"
             "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.samsung-onlydomains.txt"
@@ -47,7 +49,8 @@ jobs:
           cp raw_domains.txt AD-domains.txt
 
           # 生成 Surge 格式（加上前缀）
-          sed 's/^/DOMAIN-SUFFIX,/' raw_domains.txt > AD-domain/Surge/AD-domain.list
+          # 生成 Surge domain-set 格式（添加前缀点 .）
+          sed 's/^/./' raw_domains.txt > AD-domain/Surge/AD-domain.txt
 
           # 生成 Clash 格式 YAML（使用 '+.' 通配符格式）
           {
