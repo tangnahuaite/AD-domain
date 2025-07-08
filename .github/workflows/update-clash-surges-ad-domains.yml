@@ -51,9 +51,8 @@ jobs:
 
           # 生成 Clash 格式 YAML（使用 '+.' 通配符格式）
           {
-            echo "payload:"
-            sed "s/^/  - '+./" raw_domains.txt | sed "s/\$/\'/"
-          } > AD-domain/Clash/AD-domain.yaml
+            echo "payload:" > AD-domain/Clash/AD-domain.yaml
+            sed "s/^/  - '+./; s/\$/'/" raw_domains.txt >> AD-domain/Clash/AD-domain.yaml
 
           # 生成 Stash 格式（正确的 +. 格式）
           {
