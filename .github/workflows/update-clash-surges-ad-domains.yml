@@ -49,13 +49,13 @@ jobs:
           # 生成 Surge 格式（加上前缀）
           sed 's/^/DOMAIN-SUFFIX,/' raw_domains.txt > AD-domain/Surge/AD-domain.list
 
-          # 生成 Clash 格式 YAML
+          # 生成 Clash 格式 YAML（使用 '+.' 通配符格式）
           {
             echo "payload:"
-            sed 's/^/  - \'+./' raw_domains.txt | sed 's/$/\'/'
+            sed "s/^/  - '+./" raw_domains.txt | sed "s/\$/\'/"
           } > AD-domain/Clash/AD-domain.yaml
 
-          # 生成 Stash 格式（去除多余空格，正确的 +. 格式）
+          # 生成 Stash 格式（正确的 +. 格式）
           {
             sed 's/^/+./' raw_domains.txt
           } > AD-domain/Stash/AD-domain.txt
@@ -74,4 +74,3 @@ jobs:
             git push
           else
             echo "No changes to commit."
-          fi
