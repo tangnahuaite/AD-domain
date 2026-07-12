@@ -1,73 +1,214 @@
-name: Update Clash, Surge and Stash AD Domain Lists
+name: Update Clash Surge Stash Mihomo AD Domain Lists
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 每天 UTC 时间 2 点执行（北京时间 10 点）
+    - cron: '0 2 * * *'
   workflow_dispatch:
 
+
 jobs:
+
   update:
+
     runs-on: ubuntu-latest
 
+
     steps:
+
+
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
+
+
+
+      - name: Install mihomo
+        run: |
+
+          VERSION=$(curl -s https://api.github.com/repos/MetaCubeX/mihomo/releases/latest | grep '"tag_name"' | cut -d '"' -f 4)
+
+          echo "mihomo version: ${VERSION}"
+
+
+          wget -q \
+          https://github.com/MetaCubeX/mihomo/releases/download/${VERSION}/mihomo-linux-amd64-compatible-${VERSION}.gz \
+          -O mihomo.gz
+
+
+          gunzip mihomo.gz
+
+
+          chmod +x mihomo
+
+
+          sudo mv mihomo /usr/local/bin/mihomo
+
+
+          mihomo -v
+
+
+
 
       - name: Fetch and generate domain lists
+        shell: bash
         run: |
-          mkdir -p AD-domain/Clash AD-domain/Surge AD-domain/Stash
 
-          # 下载 anti-AD 的 Surge 格式源，去除注释和前缀
-          curl -sSL https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-surge2.txt -o anti-ad.txt
-          grep -vE '^\s*#' anti-ad.txt | sed '/^\s*$/d' | sed 's/^\.//' > clean1.txt
 
-          # 定义多个 Hagezi 源列表
+          mkdir -p AD-domain/Clash
+          mkdir -p AD-domain/Surge
+          mkdir -p AD-domain/Stash
+          mkdir -p AD-domain/Mihomo
+
+
+
+          # anti-AD
+
+          curl -sSL \
+          https://raw.githubusercontent.com/privacy-protection-tools/anti-AD/master/anti-ad-surge2.txt \
+          -o anti-ad.txt
+
+
+
+          grep -vE '^\s*#' anti-ad.txt \
+          | sed '/^\s*$/d' \
+          | sed 's/^\.//' \
+          > clean1.txt
+
+
+
+
+          # Hagezi sources
+
           urls=(
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/popupads-onlydomains.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/tif.mini-onlydomains.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.huawei-onlydomains.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.winoffice-onlydomains.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.samsung-onlydomains.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.tiktok.extended-onlydomains.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.vivo-onlydomains.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.oppo-realme-onlydomains.txt"
-            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.xiaomi-onlydomains.txt"
+
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/popupads-onlydomains.txt"
+
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/tif.mini-onlydomains.txt"
+
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.huawei-onlydomains.txt"
+
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.winoffice-onlydomains.txt"
+
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.samsung-onlydomains.txt"
+
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.tiktok.extended-onlydomains.txt"
+
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.vivo-onlydomains.txt"
+
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.oppo-realme-onlydomains.txt"
+
+          "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/native.xiaomi-onlydomains.txt"
+
           )
 
-          # 下载并清洗所有 Hagezi 域名列表
+
+
           > clean_hagezi.txt
-          for url in "${urls[@]}"; do
-            curl -sSL "$url" | grep -vE '^\s*#' | sed '/^\s*$/d' >> clean_hagezi.txt
+
+
+          for url in "${urls[@]}"
+          do
+
+            curl -sSL "$url" \
+            | grep -vE '^\s*#' \
+            | sed '/^\s*$/d' \
+            >> clean_hagezi.txt
+
           done
 
-          # 合并、统一格式、去重，得到纯域名
-          cat clean1.txt clean_hagezi.txt \
-            | sed 's/^\.//' \
-            | sort -u > raw_domains.txt
 
-          # 保存一份纯域名列表到仓库根目录
+
+
+          # merge clean domains
+
+          cat clean1.txt clean_hagezi.txt \
+          | sed 's/^\.//' \
+          | sed '/^\s*$/d' \
+          | sort -u \
+          > raw_domains.txt
+
+
+
+
+          # 原始域名
+
           cp raw_domains.txt AD-domains.txt
 
-          # 生成 Surge domain-set 格式（添加前缀点 .）
-          sed 's/^/./' raw_domains.txt > AD-domain/Surge/AD-domain.txt
 
-          # 生成 Clash 格式 YAML（使用 '+.' 通配符格式）
+
+
+          # Clash YAML
+
           {
+
             echo "payload:"
-            sed "s/^/  - '+./; s/\$/\'/" raw_domains.txt
-          }> AD-domain/Clash/AD-domain.yaml
+
+            sed "s/^/  - '+./; s/$/'/" raw_domains.txt
+
+          } > AD-domain/Clash/AD-domain.yaml
+
+
+
+
+
+          # Surge
+
+          sed 's/^/./' raw_domains.txt \
+          > AD-domain/Surge/AD-domain.txt
+
+
+
+
+          # Stash
+
+          cp AD-domain/Surge/AD-domain.txt \
+          AD-domain/Stash/AD-domain.txt
+
+
+
+
+
+          # Mihomo MRS
+
+          mihomo convert-ruleset \
+          domain \
+          yaml \
+          AD-domain/Clash/AD-domain.yaml \
+          AD-domain/Mihomo/AD-domain.mrs
+
+
+
+
 
       - name: Commit and push changes
         run: |
+
+
           git config user.name "github-actions[bot]"
+
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          if [[ $(git status --porcelain AD-domain/ AD-domains.txt) ]]; then
+
+
+          if [[ -n "$(git status --porcelain AD-domain AD-domains.txt)" ]]
+
+          then
+
+
             git add AD-domains.txt
-            git add AD-domain/Clash/AD-domain.yaml
-            git add AD-domain/Surge/AD-domain.txt
-            git commit -m "Update AD domain lists on $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+            git add AD-domain/
+
+
+            git commit \
+            -m "Update AD domain rules $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+
+
             git push
+
+
           else
+
             echo "No changes to commit."
+
           fi
